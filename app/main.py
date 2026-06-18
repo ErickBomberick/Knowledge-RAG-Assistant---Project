@@ -6,11 +6,16 @@ from pydantic import BaseModel
 
 from app.rag import ask_question, ingest_file, reset_vector_store, search_documents
 
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
 app = FastAPI(
     title="Client Knowledge RAG Assistant",
     description="RAG assistant pentru documentație de business folosind Gemini, LangChain și ChromaDB.",
     version="0.2.0"
 )
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 UPLOAD_DIR = Path("data/uploads")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -25,9 +30,7 @@ class SearchRequest(BaseModel):
 
 @app.get("/")
 def root():
-    return {
-        "message": "RAG Assistant is running"
-    }
+    return FileResponse("static/index.html")
 
 
 @app.get("/health")

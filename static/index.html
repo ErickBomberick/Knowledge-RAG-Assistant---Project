@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Client Knowledge RAG Assistant</title>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+    <div class="app">
+        <header class="hero">
+            <div>
+                <p class="badge">RAG Assistant Demo</p>
+                <h1>Client Knowledge RAG Assistant</h1>
+                <p class="subtitle">
+                    Încarcă documente de business și pune întrebări. Asistentul răspunde folosind informațiile indexate.
+                </p>
+            </div>
+        </header>
+
+        <main class="layout">
+            <section class="card">
+                <h2>1. Încarcă document</h2>
+                <p class="muted">Acceptă PDF, TXT și Markdown.</p>
+
+                <div class="upload-box">
+                    <input id="fileInput" type="file" accept=".pdf,.txt,.md" />
+                    <button id="uploadButton">Încarcă și indexează</button>
+                </div>
+
+                <div id="uploadStatus" class="status"></div>
+            </section>
+
+            <section class="card">
+                <h2>2. Pune o întrebare</h2>
+                <p class="muted">Răspunsul este generat pe baza documentelor încărcate.</p>
+
+                <textarea id="questionInput" placeholder="Ex: Cine poate șterge clienți?"></textarea>
+
+                <div class="actions">
+                    <button id="askButton">Întreabă AI</button>
+                    <button id="searchButton" class="secondary">Caută fragmente</button>
+                    <button id="resetButton" class="danger">Reset</button>
+                </div>
+            </section>
+
+            <section class="card result-card">
+                <h2>Răspuns</h2>
+                <div id="loading" class="loading hidden">Se procesează...</div>
+                <div id="answerBox" class="answer empty">
+                    Răspunsul va apărea aici.
+                </div>
+            </section>
+
+            <section class="card result-card">
+                <h2>Surse</h2>
+                <div id="sourcesBox" class="sources empty">
+                    Sursele folosite vor apărea aici.
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
