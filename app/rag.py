@@ -132,3 +132,9 @@ Context:
         "answer": response.content,
         "sources": sources,
     }
+def reset_vector_store() -> dict[str, str]:
+    vector_store.reset_collection()
+
+    return {
+        "message": "Vector store resetat cu succes."
+    }

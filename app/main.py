@@ -4,11 +4,12 @@ from pathlib import Path
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from app.rag import ask_question, ingest_file
+from app.rag import ask_question, ingest_file, reset_vector_store
 
 app = FastAPI(
-    title="Proiect",
-    version="0.1.0"
+    title="Client Knowledge RAG Assistant",
+    description="RAG assistant pentru documentație de business folosind Gemini, LangChain și ChromaDB.",
+    version="0.2.0"
 )
 
 UPLOAD_DIR = Path("data/uploads")
@@ -46,16 +47,22 @@ def upload_file(file: UploadFile = File(...)):
 
     file_path = UPLOAD_DIR / file.filename
 
-    with file_path.open("wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    try:
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
 
-    result = ingest_file(str(file_path))
+        result = ingest_file(str(file_path))
 
-    return {
-        "message": "Fișier încărcat și indexat cu succes.",
-        "result": result,
-    }
+        return {
+            "message": "Fișier încărcat și indexat cu succes.",
+            "result": result,
+        }
 
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Eroare la procesarea fișierului: {str(error)}"
+        )
 
 @app.post("/ask")
 def ask(request: AskRequest):
@@ -65,6 +72,45 @@ def ask(request: AskRequest):
             detail="Întrebarea nu poate fi goală."
         )
 
-    result = ask_question(request.question)
+    try:
+        result = ask_question(request.question)
+        return result
 
-    return result
+    except Exception as error:
+        error_message = str(error)
+
+        if "503" in error_message or "UNAVAILABLE" in error_message:
+            raise HTTPException(
+                status_code=503,
+                detail="Serviciul AI este temporar indisponibil sau supraîncărcat. Încearcă din nou peste câteva minute."
+            )
+
+        if "429" in error_message or "quota" in error_message.lower():
+            raise HTTPException(
+                status_code=429,
+                detail="Quota Gemini API a fost depășită. Verifică limitele contului sau încearcă mai târziu."
+            )
+
+        if "404" in error_message or "not found" in error_message.lower():
+            raise HTTPException(
+                status_code=502,
+                detail="Modelul AI configurat nu este disponibil. Verifică GEMINI_MODEL din fișierul .env."
+            )
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Eroare la generarea răspunsului AI: {error_message}"
+        )
+
+
+@app.post("/reset")
+def reset():
+    try:
+        result = reset_vector_store()
+        return result
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Eroare la resetarea vector store-ului: {str(error)}"
+        )
