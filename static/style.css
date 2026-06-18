@@ -214,3 +214,30 @@ button:disabled {
         font-size: 32px;
     }
 }
+.documents {
+    background: #020617;
+    border: 1px solid #1e293b;
+    border-radius: 14px;
+    padding: 16px;
+    min-height: 80px;
+    line-height: 1.6;
+}
+
+.document-item {
+    border-bottom: 1px solid #1e293b;
+    padding: 10px 0;
+}
+
+.document-item:last-child {
+    border-bottom: none;
+}
+
+.document-title {
+    color: #93c5fd;
+    font-weight: 700;
+}
+
+.document-meta {
+    color: #94a3b8;
+    font-size: 14px;
+}

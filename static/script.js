@@ -11,6 +11,8 @@ const answerBox = document.getElementById("answerBox");
 const sourcesBox = document.getElementById("sourcesBox");
 const loading = document.getElementById("loading");
 
+const documentsBox = document.getElementById("documentsBox");
+
 function setLoading(isLoading) {
     loading.classList.toggle("hidden", !isLoading);
 
@@ -82,6 +84,8 @@ async function uploadDocument() {
         uploadStatus.textContent =
             `Document indexat cu succes: ${data.result.file}. ` +
             `Chunks create: ${data.result.chunks_created}.`;
+            
+        await loadDocuments();
     } catch (error) {
         uploadStatus.textContent = error.message;
     } finally {
@@ -185,6 +189,8 @@ async function resetVectorStore() {
         showAnswer(data.message);
         sourcesBox.textContent = "Sursele au fost resetate.";
         uploadStatus.textContent = "";
+
+    await loadDocuments();
     } catch (error) {
         showAnswer(error.message);
     } finally {
@@ -192,7 +198,49 @@ async function resetVectorStore() {
     }
 }
 
+async function loadDocuments() {
+    try {
+        const response = await fetch("/documents");
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.detail || "Eroare la încărcarea documentelor.");
+        }
+
+        documentsBox.classList.remove("empty");
+
+        if (!data.documents || data.documents.length === 0) {
+            documentsBox.classList.add("empty");
+            documentsBox.textContent = "Nu există documente indexate încă.";
+            return;
+        }
+
+        documentsBox.innerHTML = "";
+
+        data.documents.forEach((indexedDocument) => {
+            const item = document.createElement("div");
+            item.className = "document-item";
+
+            const title = document.createElement("div");
+            title.className = "document-title";
+            title.textContent = indexedDocument.filename;
+
+            const meta = document.createElement("div");
+            meta.className = "document-meta";
+            meta.textContent = `Chunks create: ${indexedDocument.chunks_created}`;
+
+            item.appendChild(title);
+            item.appendChild(meta);
+            documentsBox.appendChild(item);
+        });
+    } catch (error) {
+        documentsBox.textContent = error.message;
+    }
+}
+
 uploadButton.addEventListener("click", uploadDocument);
 askButton.addEventListener("click", askQuestion);
 searchButton.addEventListener("click", searchDocuments);
 resetButton.addEventListener("click", resetVectorStore);
+
+loadDocuments();

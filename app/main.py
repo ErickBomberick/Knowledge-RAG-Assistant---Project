@@ -9,6 +9,10 @@ from app.rag import ask_question, ingest_file, reset_vector_store, search_docume
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+import json
+import shutil
+from pathlib import Path
+
 app = FastAPI(
     title="Client Knowledge RAG Assistant",
     description="RAG assistant pentru documentație de business folosind Gemini, LangChain și ChromaDB.",
@@ -20,6 +24,46 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 UPLOAD_DIR = Path("data/uploads")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+DOCUMENTS_FILE = Path("data/documents.json")
+
+
+def load_indexed_documents() -> list[dict]:
+    if not DOCUMENTS_FILE.exists():
+        return []
+
+    with DOCUMENTS_FILE.open("r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def save_indexed_document(filename: str, chunks_created: int) -> None:
+    documents = load_indexed_documents()
+
+    existing_document = next(
+        (document for document in documents if document["filename"] == filename),
+        None
+    )
+
+    if existing_document:
+        existing_document["chunks_created"] = chunks_created
+    else:
+        documents.append(
+            {
+                "filename": filename,
+                "chunks_created": chunks_created,
+            }
+        )
+
+    DOCUMENTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+    with DOCUMENTS_FILE.open("w", encoding="utf-8") as file:
+        json.dump(documents, file, indent=2, ensure_ascii=False)
+
+
+def clear_indexed_documents() -> None:
+    DOCUMENTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+    with DOCUMENTS_FILE.open("w", encoding="utf-8") as file:
+        json.dump([], file, indent=2, ensure_ascii=False)
 
 class AskRequest(BaseModel):
     question: str
@@ -58,6 +102,11 @@ def upload_file(file: UploadFile = File(...)):
             shutil.copyfileobj(file.file, buffer)
 
         result = ingest_file(str(file_path))
+
+        save_indexed_document(
+            filename=result["file"],
+            chunks_created=result["chunks_created"],
+        )
 
         return {
             "message": "Fișier încărcat și indexat cu succes.",
@@ -113,6 +162,7 @@ def ask(request: AskRequest):
 def reset():
     try:
         result = reset_vector_store()
+        clear_indexed_documents()
         return result
 
     except Exception as error:
@@ -144,3 +194,8 @@ def search(request: SearchRequest):
             status_code=500,
             detail=f"Eroare la căutarea în documente: {str(error)}"
         )
+@app.get("/documents")
+def documents():
+    return {
+        "documents": load_indexed_documents()
+    }
