@@ -50,18 +50,21 @@ def ingest_file(file_path: str) -> dict[str, Any]:
     documents = load_document(file_path)
 
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=900,
-        chunk_overlap=150,
+        chunk_size=600,
+        chunk_overlap=100,
     )
 
     chunks = splitter.split_documents(documents)
 
     filename = Path(file_path).name
 
+    delete_document_from_vector_store(filename)
+
     for chunk in chunks:
         chunk.metadata["source_file"] = filename
 
     vector_store.add_documents(chunks)
+    
 
     return {
         "file": filename,
@@ -72,7 +75,7 @@ def ingest_file(file_path: str) -> dict[str, Any]:
 
 def ask_question(question: str) -> dict[str, Any]:
     retriever = vector_store.as_retriever(
-        search_kwargs={"k": 4}
+        search_kwargs={"k": 2}
     )
 
     docs = retriever.invoke(question)
@@ -124,7 +127,7 @@ Context:
             {
                 "file": doc.metadata.get("source_file", "necunoscut"),
                 "page": doc.metadata.get("page", "n/a"),
-                "preview": doc.page_content[:250],
+                "preview": doc.page_content[:220] + "..." if len(doc.page_content) > 220 else doc.page_content,
             }
         )
 
@@ -161,4 +164,15 @@ def search_documents(query: str, k: int = 4) -> dict[str, Any]:
         "query": query,
         "results_count": len(results),
         "results": results,
+    }
+
+def delete_document_from_vector_store(filename: str) -> dict[str, str]:
+    vector_store.delete(
+        where={
+            "source_file": filename
+        }
+    )
+
+    return {
+        "message": f"Documentul {filename} a fost șters din vector store."
     }
