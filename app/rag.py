@@ -138,3 +138,27 @@ def reset_vector_store() -> dict[str, str]:
     return {
         "message": "Vector store resetat cu succes."
     }
+
+def search_documents(query: str, k: int = 4) -> dict[str, Any]:
+    retriever = vector_store.as_retriever(
+        search_kwargs={"k": k}
+    )
+
+    docs = retriever.invoke(query)
+
+    results = []
+
+    for doc in docs:
+        results.append(
+            {
+                "file": doc.metadata.get("source_file", "necunoscut"),
+                "page": doc.metadata.get("page", "n/a"),
+                "content": doc.page_content,
+            }
+        )
+
+    return {
+        "query": query,
+        "results_count": len(results),
+        "results": results,
+    }

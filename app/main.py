@@ -4,7 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from app.rag import ask_question, ingest_file, reset_vector_store
+from app.rag import ask_question, ingest_file, reset_vector_store, search_documents
 
 app = FastAPI(
     title="Client Knowledge RAG Assistant",
@@ -18,6 +18,9 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 class AskRequest(BaseModel):
     question: str
+class SearchRequest(BaseModel):
+    query: str
+    k: int = 4
 
 
 @app.get("/")
@@ -113,4 +116,28 @@ def reset():
         raise HTTPException(
             status_code=500,
             detail=f"Eroare la resetarea vector store-ului: {str(error)}"
+        )
+    
+@app.post("/search")
+def search(request: SearchRequest):
+    if not request.query.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Query-ul nu poate fi gol."
+        )
+
+    if request.k < 1 or request.k > 10:
+        raise HTTPException(
+            status_code=400,
+            detail="k trebuie să fie între 1 și 10."
+        )
+
+    try:
+        result = search_documents(request.query, request.k)
+        return result
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Eroare la căutarea în documente: {str(error)}"
         )
